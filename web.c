@@ -58,10 +58,10 @@ static int urlparse(char *url, char **host, char **path, char **port)
 
 int main(int argc, char *argv[])
 {
-    char *host, *path, *proto, *port, url[BUFSIZ];
+    char *host, *path, *proto, *port, url[BUFSIZ], *hend;
     struct addrinfo hints, *result, *rp;
-    int sfd, r, s;
-    ssize_t reqlen, len, i;
+    int sfd, r, s, seen_hend = 0;
+    ssize_t reqlen, len, hendi;
 
     if (argc != 2) {
         fprintf(stderr, "usage: web url\n");
@@ -134,7 +134,16 @@ int main(int argc, char *argv[])
     }
 
     while ((len = read(sfd, buf, sizeof(buf))) > 0) {
-        write(1, buf, len);
+        if (!seen_hend && ((hend = strstr(buf, "\r\n\r\n")) != NULL)) {
+            seen_hend++;
+            hendi = hend - buf + 4;
+            write(2, buf, hendi);
+            write(1, buf + hendi, len - hendi);
+        } else if (!seen_hend) {
+            write(2, buf, len);
+        } else {
+            write(1, buf, len);
+        }
     }
 
     if (len < 0) {
