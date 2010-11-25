@@ -89,8 +89,8 @@ int main(int argc, char *argv[])
     if (!port)
         port = "80";
 
-    snprintf(buf, sizeof(buf), "GET /%s HTTP/1.1\r\nHost: %s\r\n", path,
-             host);
+    snprintf(buf, sizeof(buf), "GET /%s HTTP/1.1\r\nHost: %s\r\n\r\n",
+             path, host);
     reqlen = strlen(buf);
 
     memset(&hints, 0, sizeof(struct addrinfo));
