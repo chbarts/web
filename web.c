@@ -118,13 +118,12 @@ int main(int argc, char *argv[])
         close(sfd);
     }
 
+    freeaddrinfo(result);
+
     if (!rp) {
-        freeaddrinfo(result);
         fprintf(stderr, "Could not connect\n");
         exit(EXIT_FAILURE);
     }
-
-    freeaddrinfo(result);
 
     if (write(sfd, buf, reqlen) != reqlen) {
         perror("write");
@@ -134,15 +133,15 @@ int main(int argc, char *argv[])
     }
 
     while ((len = read(sfd, buf, sizeof(buf))) > 0) {
-        if (!seen_hend && ((hend = strstr(buf, "\r\n\r\n")) != NULL)) {
+        if (seen_hend) {
+            write(1, buf, len);
+        } else if (!seen_hend && (hend = strstr(buf, "\r\n\r\n"))) {
             seen_hend++;
             hendi = hend - buf + 4;
             write(2, buf, hendi);
             write(1, buf + hendi, len - hendi);
-        } else if (!seen_hend) {
-            write(2, buf, len);
         } else {
-            write(1, buf, len);
+            write(2, buf, len);
         }
     }
 
