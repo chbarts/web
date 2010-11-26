@@ -39,7 +39,7 @@ static int urlparse(char *url, char **host, char **path, char **port)
         i++;
         *port = url + i;
         for (; (url[i] != '/') && (url[i] != '\0'); i++);
-        if (url[i] = '/') {
+        if (url[i] == '/') {
             url[i] = '\0';
             *path = url + i + 1;
         } else {
