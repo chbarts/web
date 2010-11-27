@@ -1,10 +1,16 @@
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <netdb.h>
 #include <stdio.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#define _GNU_SOURCE
+#include <getopt.h>
+
+extern int optind;
 
 static char buf[BUFSIZ];
 
@@ -56,33 +62,124 @@ static int urlparse(char *url, char **host, char **path, char **port)
     return 0;
 }
 
+static void version(void)
+{
+    puts("web version 0.3: void where prohibited");
+    puts("Copyright 2010, Chris Barts");
+    puts("Licensed under the GNU General Public License, version 3.0 or, at your option, any later version.");
+    puts("This software has NO WARRANTY, even for USABILITY or FITNESS FOR A PARTICULAR PURPOSE.");
+}
+
+static void help(char name[])
+{
+    printf("%s [options...] url\n", name);
+    puts("Options:");
+    puts("--out file | -o file    Output data to file");
+    puts("--dump file | -d file   Dump header to file");
+    puts("--help | -h             Print this help");
+    puts("--version | -v          Print version information");
+}
+
 int main(int argc, char *argv[])
 {
-    char *host, *path, *proto, *port, url[BUFSIZ], *hend;
+    char *host, *path, *proto, *port, url[BUFSIZ], *hend, *pnam, *of =
+        NULL, *df = NULL;
     struct addrinfo hints, *result, *rp;
-    int sfd, r, s, seen_hend = 0;
+    int sfd, r, s, c, lind, oh = 1, dh = 2, seen_hend = 0;
     ssize_t reqlen, len, hendi;
+    struct option longopts[] = {
+        {"out", 1, 0, 0},
+        {"dump", 1, 0, 0},
+        {"help", 0, 0, 0},
+        {"version", 0, 0, 0},
+        {0, 0, 0, 0}
+    };
 
-    if (argc != 2) {
-        fprintf(stderr, "usage: web url\n");
-        return 0;
+    pnam = argv[0];
+
+    if (argc == 1) {
+        printf("%s: [options...] url\n", pnam);
+        exit(EXIT_SUCCESS);
     }
 
-    strncpy(url, argv[1], sizeof(url));
+    while ((c = getopt_long(argc, argv, "o:d:hv", longopts, &lind)) != -1) {
+        switch (c) {
+        case 0:
+            switch (lind) {
+            case 0:
+                of = optarg;
+                break;
+            case 1:
+                df = optarg;
+                break;
+            case 2:
+                help(pnam);
+                exit(EXIT_SUCCESS);
+            case 3:
+                version();
+                exit(EXIT_SUCCESS);
+            default:
+                help(pnam);
+                exit(EXIT_FAILURE);
+            }
+
+            break;
+        case 'o':
+            of = optarg;
+            break;
+        case 'd':
+            df = optarg;
+            break;
+        case 'h':
+            help(pnam);
+            exit(EXIT_SUCCESS);
+        case 'v':
+            version();
+            exit(EXIT_SUCCESS);
+        default:
+            help(pnam);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    if (optind >= argc) {
+        fprintf(stderr, "%s: URL required\n", pnam);
+        goto abend_nonet;
+    }
+
+    if (of) {
+        if ((oh =
+             open(of, O_WRONLY | O_APPEND | O_CREAT,
+                  S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1) {
+            perror("open() output file");
+            goto abend_nonet;
+        }
+    }
+
+    if (df) {
+        if ((dh =
+             open(df, O_WRONLY | O_APPEND | O_CREAT,
+                  S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH)) == -1) {
+            perror("open() dump file");
+            goto abend_nonet;
+        }
+    }
+
+    strncpy(url, argv[optind], sizeof(url));
     if ((r = urlparse(url, &host, &path, &port)) < 0) {
         switch (r) {
         case -1:
             fprintf(stderr, "web: invalid protocol\n");
-            exit(EXIT_FAILURE);
+            goto abend_nonet;
         case -2:
             fprintf(stderr, "web: no host\n");
-            exit(EXIT_FAILURE);
+            goto abend_nonet;
         case -3:
             fprintf(stderr, "web: invalid port %s\n", port);
-            exit(EXIT_FAILURE);
+            goto abend_nonet;
         default:
             fprintf(stderr, "web: can't happen\n");
-            exit(EXIT_FAILURE);
+            goto abend_nonet;
         }
     }
 
@@ -101,7 +198,7 @@ int main(int argc, char *argv[])
 
     if ((s = getaddrinfo(host, port, &hints, &result)) != 0) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
-        exit(EXIT_FAILURE);
+        goto abend_nonet;
     }
 
     for (rp = result; rp != NULL; rp = rp->ai_next) {
@@ -122,37 +219,62 @@ int main(int argc, char *argv[])
 
     if (!rp) {
         fprintf(stderr, "Could not connect\n");
-        exit(EXIT_FAILURE);
+        goto abend_nonet;
     }
 
     if (write(sfd, buf, reqlen) != reqlen) {
-        perror("write");
-        shutdown(sfd, SHUT_RDWR);
-        close(sfd);
-        exit(EXIT_FAILURE);
+        perror("write() to remote host");
+        goto abend_net;
     }
 
     while ((len = read(sfd, buf, sizeof(buf))) > 0) {
         if (seen_hend) {
-            write(1, buf, len);
+            if (write(oh, buf, len) != len) {
+                perror("write() to output file");
+                goto abend_net;
+            }
+
         } else if (!seen_hend && (hend = strstr(buf, "\r\n\r\n"))) {
             seen_hend++;
             hendi = hend - buf + 4;
-            write(2, buf, hendi);
-            write(1, buf + hendi, len - hendi);
+            if (write(dh, buf, hendi) != hendi) {
+                perror("write() to dump file");
+                goto abend_net;
+            }
+
+            if (write(oh, buf + hendi, len - hendi) != len - hendi) {
+                perror("write() to output file");
+                goto abend_net;
+            }
+
         } else {
-            write(2, buf, len);
+            if (write(dh, buf, len) != len) {
+                perror("write() to dump file");
+                goto abend_net;
+            }
         }
     }
 
     if (len < 0) {
         perror("read");
-        shutdown(sfd, SHUT_RDWR);
-        close(sfd);
-        exit(EXIT_FAILURE);
+        goto abend_net;
     }
 
     shutdown(sfd, SHUT_RDWR);
     close(sfd);
-    return 0;
+    if (oh != 1)
+        close(oh);
+    if (dh != 2)
+        close(dh);
+    exit(EXIT_SUCCESS);
+
+  abend_net:
+    shutdown(sfd, SHUT_RDWR);
+    close(sfd);
+  abend_nonet:
+    if (oh != 1)
+        close(oh);
+    if (dh != 2)
+        close(dh);
+    exit(EXIT_FAILURE);
 }
