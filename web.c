@@ -145,6 +145,11 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    if (sig_handle(SIGHUP, handler) == -1) {
+        perror("sigaction() SIGHUP");
+        exit(EXIT_FAILURE);
+    }
+
     if (sig_handle(SIGTERM, handler) == -1) {
         perror("sigaction() SIGTERM");
         exit(EXIT_FAILURE);
