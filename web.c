@@ -19,7 +19,7 @@ static int sfd = 0, oh = 1, dh = 2;
 static void handler(int sig)
 {
     if (sfd) {
-        shutdown(sfd, SHUT_RDRW);
+        shutdown(sfd, SHUT_RDWR);
         close(sfd);
     }
 
