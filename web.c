@@ -96,8 +96,8 @@ static int sig_handle(int sig, void (*hndlr) (int))
 
 static void version(void)
 {
-    puts("web version 0.3: void where prohibited");
-    puts("Copyright 2010, Chris Barts");
+    puts("web version 0.4: the Svengoolie shrinking variant");
+    puts("Copyright 2011, Chris Barts");
     puts("Licensed under the GNU General Public License, version 3.0 or, at your option, any later version.");
     puts("This software has NO WARRANTY, even for USABILITY or FITNESS FOR A PARTICULAR PURPOSE.");
 }
