@@ -80,14 +80,14 @@ static int urlparse(char *url, char **host, char **path, char **port)
     return 0;
 }
 
-static int sig_handle(int sig, void (*hndlr) (int sig))
+static int sig_handle(int sig, void (*hndlr) (int))
 {
     struct sigaction act;
 
     act.sa_handler = hndlr;
     sigemptyset(&act.sa_mask);
     act.sa_flags = 0;
-    if (sigaction(SIGPIPE, &act, NULL) == -1) {
+    if (sigaction(sig, &act, NULL) == -1) {
         return -1;
     }
 
