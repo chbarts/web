@@ -7,12 +7,30 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <signal.h>
 #define _GNU_SOURCE
 #include <getopt.h>
 
 extern int optind;
 
 static char buf[BUFSIZ];
+static int sfd = 0, oh = 1, dh = 2;
+
+static void handler(int sig)
+{
+    if (sfd) {
+        shutdown(sfd, SHUT_RDRW);
+        close(sfd);
+    }
+
+    if (oh != 1)
+        close(oh);
+
+    if (dh != 2)
+        close(dh);
+
+    exit(EXIT_SUCCESS);
+}
 
 static int urlparse(char *url, char **host, char **path, char **port)
 {
@@ -62,6 +80,20 @@ static int urlparse(char *url, char **host, char **path, char **port)
     return 0;
 }
 
+static int sig_handle(int sig, void (*hndlr) (int sig))
+{
+    struct sigaction act;
+
+    act.sa_handler = hndlr;
+    sigemptyset(&act.sa_mask);
+    act.sa_flags = 0;
+    if (sigaction(SIGPIPE, &act, NULL) == -1) {
+        return -1;
+    }
+
+    return 0;
+}
+
 static void version(void)
 {
     puts("web version 0.3: void where prohibited");
@@ -85,8 +117,9 @@ int main(int argc, char *argv[])
     char *host, *path, *proto, *port, url[BUFSIZ], *hend, *pnam, *of =
         NULL, *df = NULL;
     struct addrinfo hints, *result, *rp;
-    int sfd, r, s, c, lind, oh = 1, dh = 2, seen_hend = 0;
+    int r, s, c, lind, seen_hend = 0;
     ssize_t reqlen, len, hendi;
+    struct sigaction act;
     struct option longopts[] = {
         {"out", 1, 0, 0},
         {"dump", 1, 0, 0},
@@ -100,6 +133,31 @@ int main(int argc, char *argv[])
     if (argc == 1) {
         printf("%s: [options...] url\n", pnam);
         exit(EXIT_SUCCESS);
+    }
+
+    if (sig_handle(SIGPIPE, SIG_IGN) == -1) {
+        perror("sigaction() SIGPIPE");
+        exit(EXIT_FAILURE);
+    }
+
+    if (sig_handle(SIGINT, handler) == -1) {
+        perror("sigaction() SIGINT");
+        exit(EXIT_FAILURE);
+    }
+
+    if (sig_handle(SIGTERM, handler) == -1) {
+        perror("sigaction() SIGTERM");
+        exit(EXIT_FAILURE);
+    }
+
+    if (sig_handle(SIGUSR1, handler) == -1) {
+        perror("sigaction() SIGUSR1");
+        exit(EXIT_FAILURE);
+    }
+
+    if (sig_handle(SIGUSR2, handler) == -1) {
+        perror("sigaction() SIGUSR2");
+        exit(EXIT_FAILURE);
     }
 
     while ((c = getopt_long(argc, argv, "o:d:hv", longopts, &lind)) != -1) {
