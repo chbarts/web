@@ -138,6 +138,7 @@ int main(int argc, char *argv[])
     struct addrinfo hints, *result, *rp;
     int r, s, c, lind, seen_hend = 0;
     ssize_t reqlen, len, hendi;
+    size_t tot_len = 0, seen_len = 0;
     struct sigaction act;
     struct option longopts[] = {
         {"out", 1, 0, 0},
@@ -316,6 +317,13 @@ int main(int argc, char *argv[])
                 goto abend_net;
             }
 
+            if (tot_len > 0) {
+               seen_len += len;
+
+               if (seen_len >= tot_len)
+                  handler(0);
+            }
+
         } else if (!seen_hend && (hend = strstr(buf, "\r\n\r\n"))) {
             seen_hend++;
             hendi = hend - buf + 4;
@@ -324,9 +332,18 @@ int main(int argc, char *argv[])
                 goto abend_net;
             }
 
+            tot_len = get_length(buf);
+
             if (write(oh, buf + hendi, len - hendi) != len - hendi) {
                 perror("write() to output file");
                 goto abend_net;
+            }
+
+            if (tot_len > 0) {
+               seen_len += len - hendi;
+
+               if (seen_len >= tot_len)
+                  handler(0);
             }
 
         } else {
@@ -334,6 +351,8 @@ int main(int argc, char *argv[])
                 perror("write() to dump file");
                 goto abend_net;
             }
+
+            tot_len = get_length(buf);
         }
     }
 
@@ -342,13 +361,7 @@ int main(int argc, char *argv[])
         goto abend_net;
     }
 
-    shutdown(sfd, SHUT_RDWR);
-    close(sfd);
-    if (oh != 1)
-        close(oh);
-    if (dh != 2)
-        close(dh);
-    exit(EXIT_SUCCESS);
+    handler(0);
 
   abend_net:
     shutdown(sfd, SHUT_RDWR);
