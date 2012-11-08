@@ -341,8 +341,6 @@ int main(int argc, char *argv[])
             }
 
             if (tot_len > 0) {
-               fprintf(stderr, "Length: %llu\n", (unsigned long long) tot_len);
-
                 seen_len += len - hendi;
 
                 if (seen_len >= tot_len)
