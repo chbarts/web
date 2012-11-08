@@ -97,20 +97,20 @@ static int sig_handle(int sig, void (*hndlr) (int))
 
 static size_t get_length(char *header)
 {
-   char *ptr;
-   size_t res;
+    char *ptr;
+    size_t res;
 
-   if ((ptr = strstr(header, "Content-Length: ")) == NULL)
-      return 0;
+    if ((ptr = strstr(header, "Content-Length: ")) == NULL)
+        return 0;
 
-   ptr += sizeof("Content-Length: ");
+    ptr += sizeof("Content-Length: ");
 
-   if ((res = (size_t) strtoull(ptr, NULL, 10)) == ULLONG_MAX) {
-      if ((errno == EINVAL) || (errno == ERANGE))
-         return 0;
-   }
+    if ((res = (size_t) strtoull(ptr, NULL, 10)) == ULLONG_MAX) {
+        if ((errno == EINVAL) || (errno == ERANGE))
+            return 0;
+    }
 
-   return res;
+    return res;
 }
 
 static void version(void)
@@ -318,10 +318,10 @@ int main(int argc, char *argv[])
             }
 
             if (tot_len > 0) {
-               seen_len += len;
+                seen_len += len;
 
-               if (seen_len >= tot_len)
-                  handler(0);
+                if (seen_len >= tot_len)
+                    handler(0);
             }
 
         } else if (!seen_hend && (hend = strstr(buf, "\r\n\r\n"))) {
@@ -340,10 +340,10 @@ int main(int argc, char *argv[])
             }
 
             if (tot_len > 0) {
-               seen_len += len - hendi;
+                seen_len += len - hendi;
 
-               if (seen_len >= tot_len)
-                  handler(0);
+                if (seen_len >= tot_len)
+                    handler(0);
             }
 
         } else {
