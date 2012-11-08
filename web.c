@@ -104,7 +104,7 @@ static size_t get_length(char *header)
     if ((ptr = strstr(header, "Content-Length: ")) == NULL)
         return 0;
 
-    ptr += sizeof("Content-Length: ");
+    ptr += sizeof("Content-Length: ") - 2;
 
     if ((res = (size_t) strtoull(ptr, NULL, 10)) == ULLONG_MAX) {
         if ((errno == EINVAL) || (errno == ERANGE))
