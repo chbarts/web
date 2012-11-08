@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <signal.h>
+#include <errno.h>
 #define _GNU_SOURCE
 #include <getopt.h>
 
@@ -92,6 +93,24 @@ static int sig_handle(int sig, void (*hndlr) (int))
     }
 
     return 0;
+}
+
+static size_t get_length(char *header)
+{
+   char *ptr;
+   size_t res;
+
+   if ((ptr = strstr(header, "Content-Length: ")) == NULL)
+      return 0;
+
+   ptr += sizeof("Content-Length: ");
+
+   if ((res = (size_t) strtoull(ptr, NULL, 10)) == ULLONG_MAX) {
+      if ((errno == EINVAL) || (errno == ERANGE))
+         return 0;
+   }
+
+   return res;
 }
 
 static void version(void)
