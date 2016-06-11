@@ -8,7 +8,7 @@ all: web
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 web: web.o
-	$(CC) $(OBJ) -o web -lm
+	$(CC) $(OBJ) -o web
 
 clean:
 	rm web $(OBJ)
