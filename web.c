@@ -87,7 +87,7 @@ static int sig_handle(int sig, void (*hndlr) (int))
     struct sigaction act;
 
     act.sa_handler = hndlr;
-    sigemptyset(&act.sa_mask);
+    sigfillset(&act.sa_mask);
     act.sa_flags = 0;
     if (sigaction(sig, &act, NULL) == -1) {
         return -1;
@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
         exit(EXIT_SUCCESS);
     }
 
-    if (sig_handle(SIGPIPE, SIG_IGN) == -1) {
+    if (sig_handle(SIGPIPE, handler) == -1) {
         perror("sigaction() SIGPIPE");
         exit(EXIT_FAILURE);
     }
