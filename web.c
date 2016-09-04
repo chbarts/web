@@ -281,7 +281,11 @@ int main(int argc, char *argv[])
     hints.ai_flags = 0;
     hints.ai_protocol = 0;
 
+  again:
     if ((s = getaddrinfo(host, port, &hints, &result)) != 0) {
+        if (s == EAI_AGAIN)
+            goto again;
+
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
         goto abend_nonet;
     }
