@@ -1,0 +1,1 @@
+date -d "$(2>&1 web --out /dev/null nist.gov | awk -F': ' '/Date/ { print $2 }')"
