@@ -286,7 +286,8 @@ int main(int argc, char *argv[])
         if (s == EAI_AGAIN)
             goto again;
 
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
+        fprintf(stderr, "getaddrinfo: error on %s:%s: %s\n", host, port,
+                gai_strerror(s));
         goto abend_nonet;
     }
 
