@@ -5,4 +5,4 @@ if [[ $# -eq 0 ]]; then
     exit 0
 fi
 
-web "$@" | perl -ne 'if (m{<a href="(//i.imgur.com/[^"]+)" class="zoom">}) { print "http:$1\n" }'
+web "$@" | egrep -v '(thumb|placeholder)' | perl -ne 'if (m{"(//i.imgur.com/[^"]+)"}) { print "http:$1\n" }'
