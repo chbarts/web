@@ -1,0 +1,8 @@
+#!/usr/bin/zsh
+
+if [[ $# -eq 0 ]]; then
+    echo "usage: $0 IMGUR-GALLERY-URL (like http://imgur.com/a/UlFLb)"
+    exit 0
+fi
+
+web "$@" | perl -ne 'if (m{<a href="(//i.imgur.com/[^"]+)" class="zoom">}) { print "http:$1\n" }'
