@@ -5,4 +5,6 @@ if [[ $# -eq 0 ]]; then
     exit 0
 fi
 
-web "$@" | egrep -v '(thumb|placeholder)' | perl -ne 'if (m{"(//i.imgur.com/[^"]+)"}) { print "http:$1\n" }'
+ghash=$(echo "$@" | awk -F'/' '{ print $NF }')
+
+web http://imgur.com/ajaxalbums/getimages/$ghash/hit.json | jq -r '.data.images[] | [.hash, .ext] | @tsv' | awk -F'\t' '{ print "http://i.imgur.com/"$1$2 }'
