@@ -1,7 +1,7 @@
 #!/usr/bin/zsh
 
 if [[ $# -eq 0 ]]; then
-    echo "usage: $0 IMGUR-GALLERY-URL (like http://imgur.com/a/UlFLb)"
+    echo "usage: $0 IMGUR-GALLERY-URL (like http://imgur.com/gallery/UlFLb)"
     exit 0
 fi
 
