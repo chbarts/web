@@ -1,0 +1,16 @@
+#!/usr/bin/env zsh
+
+if [[ $# -ne 2 ]]; then
+    echo "usage: $0 PROPOSED-DIRNAME IMGUR-URL [like https://imgur.com/gallery/tWvVJ0q]" > /dev/stderr
+    echo "Turns PROPOSED-DIRNAME into PROPOSED-DIRNAME-$(date -Iseconds), if still not unique, error out" > /dev/stderr
+    exit 0
+fi
+
+dname=$(realpath "$1-$(date -Iseconds)")
+if [[ -a "$dname" ]]; then
+    echo "$0: $dname exists!" > /dev/stderr
+    exit 1
+fi
+
+mkdir "$dname" && cd "$dname" && imgur-get-gallery $2 &> "$dname-log" &!
+

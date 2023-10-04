@@ -1,0 +1,29 @@
+#!/usr/bin/zsh
+
+if [[ $# -eq 0 ]]; then
+    echo "usage: $0 IMGUR-GALLERY-URL (like http://imgur.com/gallery/UlFLb)"
+    exit 0
+fi
+
+ghash=$(echo "$@" | awk -F'/' '{ print $NF }')
+
+#           https://imgur.com/ajaxalbums/getimages/8RTlK/hit.json
+
+simple-curl https://imgur.com/$ghash | grep -Po 'https://i\.imgur\.com/[^"]+' | nuniq >> urls
+simple-curl https://imgur.com/ajaxalbums/getimages/$ghash/hit.json | jq -r '.data.images[] | [.hash, .ext] | @tsv' | awk -F'\t' '{ print "http://i.imgur.com/"$1$2 }' >> urls
+echo https://imgur.com/gallery/$ghash/comment/best/hit.json >> urls
+echo https://imgur.com/gallery/$ghash/comment/new/hit.json >> urls
+echo https://imgur.com/gallery/$ghash/comment/top/hit.json >> urls
+echo https://imgur.com/ajaxalbums/getimages/$ghash/hit.json >> urls
+echo https://imgur.com/ajaxalbums/getimages/$ghash/list.json >> urls
+echo https://imgur.com/a/$ghash/zip >> urls
+wget --input-file=urls --output-file=urls.log
+# jq -r '.data.images[].description' < hit.json | awk '{ print $0 ; print "\n" }' | cat -s > descriptions
+jq -r '.data.image.album_images.images[] | ["\n" + .hash, .description] | join("\n\n")' < hit.json > descriptions
+jq -r '.data.images[] | [.hash, .ext] | @tsv' < hit.json | awk -F'\t' '{ print "https://i.imgur.com/"$1$2 }' >> single-image
+wget --input-file=single-image --output-file=single-image.out
+jq -r '.data.captions | map(select(.caption | test("imgur"))) | .[] | .caption' < hit.json | grep -Po 'http\S+' > comment-images
+wget --input-file=comment-images --output-file=comment-images.log
+grep -Po 'https://i\.imgur\.com.+\.\w+' < descriptions > desc-images
+wget --input-file=desc-images --output-file=desc-images.log
+get-gifvs

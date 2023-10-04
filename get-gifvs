@@ -1,0 +1,6 @@
+#!/usr/bin/env zsh
+
+wget -b --output-file=get-gifvs-$(date -Iseconds).log --input-file <(for i in *.gifv
+do
+grep -Po 'http.+\.mp4' $i
+done | nuniq )
