@@ -17,13 +17,13 @@ echo https://imgur.com/gallery/$ghash/comment/top/hit.json >> urls
 echo https://imgur.com/ajaxalbums/getimages/$ghash/hit.json >> urls
 echo https://imgur.com/ajaxalbums/getimages/$ghash/list.json >> urls
 echo https://imgur.com/a/$ghash/zip >> urls
-wget --input-file=urls --output-file=urls.log
+wget -U Mozilla/Gorilla --input-file=urls --output-file=urls.log
 # jq -r '.data.images[].description' < hit.json | awk '{ print $0 ; print "\n" }' | cat -s > descriptions
 jq -r '.data.image.album_images.images[] | ["\n" + .hash, .description] | join("\n\n")' < hit.json > descriptions
 jq -r '.data.images[] | [.hash, .ext] | @tsv' < hit.json | awk -F'\t' '{ print "https://i.imgur.com/"$1$2 }' >> single-image
-wget --input-file=single-image --output-file=single-image.out
+wget -U Mozilla/Gorilla --input-file=single-image --output-file=single-image.out
 jq -r '.data.captions | map(select(.caption | test("imgur"))) | .[] | .caption' < hit.json | grep -Po 'http\S+' > comment-images
-wget --input-file=comment-images --output-file=comment-images.log
+wget -U Mozilla/Gorilla --input-file=comment-images --output-file=comment-images.log
 grep -Po 'https://i\.imgur\.com.+\.\w+' < descriptions > desc-images
-wget --input-file=desc-images --output-file=desc-images.log
+wget -U Mozilla/Gorilla --input-file=desc-images --output-file=desc-images.log
 get-gifvs
